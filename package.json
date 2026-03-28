@@ -1,0 +1,29 @@
+{
+  "name": "yt-setlist-discord",
+  "version": "1.0.0",
+  "description": "Auto-detect setlist comments from YouTube videos and forward to Discord",
+  "type": "module",
+  "main": "src/core.js",
+  "exports": {
+    ".": "./src/core.js",
+    "./config": "./src/config.js",
+    "./comment-matcher": "./src/comment-matcher.js",
+    "./youtube-comments": "./src/youtube-comments.js",
+    "./youtube-channel": "./src/youtube-channel.js",
+    "./discord-sender": "./src/discord-sender.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "check": "node src/index.js --check",
+    "check:dry": "node src/index.js --check --dry-run"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "keywords": ["youtube", "setlist", "discord", "vtuber"],
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "node-cron": "^3.0.3"
+  }
+}

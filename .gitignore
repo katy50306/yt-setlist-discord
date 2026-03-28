@@ -1,0 +1,9 @@
+node_modules/
+.env
+.dev.vars
+env.json
+.wrangler/
+data/state.json
+data/channel-cache.json
+CLAUDE.md
+.claude/

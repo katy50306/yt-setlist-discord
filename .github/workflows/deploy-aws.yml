@@ -1,0 +1,112 @@
+# 部署到 AWS Lambda
+#
+# 使用前需在 GitHub Settings → Secrets and variables → Actions 設定：
+#   AWS_ACCESS_KEY_ID      — AWS IAM 使用者的 Access Key
+#   AWS_SECRET_ACCESS_KEY  — AWS IAM 使用者的 Secret Key
+#   AWS_REGION             — 部署區域（如 ap-northeast-1）
+#   YOUTUBE_API_KEY        — YouTube Data API v3 金鑰
+#   DISCORD_WEBHOOK_URLS   — Discord Webhook URL（JSON 陣列）
+#   API_TOKEN              — HTTP API 認證密碼
+#
+# 頻道管理：部署後透過 /channels 頁面新增（不需要 GitHub Secret）
+#
+# 可選（有設才生效）：
+#   PREFERRED_AUTHORS      — 優先作者（JSON 陣列）
+#   EXTRA_KEYWORDS         — 附加關鍵字（JSON 陣列）
+#   MIN_LIKES              — 最低讚數門檻（預設 10）
+#   PLAYLIST_PREFIX        — 播放清單前綴（預設 UULV）
+#   TIMEZONE               — 時區（預設 Asia/Tokyo）
+
+name: Deploy to AWS Lambda
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch: # 允許手動觸發
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      has_secrets: ${{ steps.check.outputs.has_secrets }}
+    steps:
+      - id: check
+        env:
+          AWS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        run: |
+          if [ -n "$AWS_KEY" ]; then
+            echo "has_secrets=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_secrets=false" >> $GITHUB_OUTPUT
+            echo "AWS_ACCESS_KEY_ID not set, skipping deployment"
+          fi
+
+  deploy:
+    needs: check
+    if: needs.check.outputs.has_secrets == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: aws-actions/setup-sam@v2
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'ap-northeast-1' }}
+
+      - run: npm ci
+
+      - name: SAM Build
+        run: sam build
+
+      - name: Delete failed stack if exists
+        run: |
+          STATUS=$(aws cloudformation describe-stacks --stack-name yt-setlist-discord --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "NOT_FOUND")
+          if [ "$STATUS" = "ROLLBACK_COMPLETE" ] || [ "$STATUS" = "DELETE_FAILED" ]; then
+            echo "Deleting failed stack ($STATUS)..."
+            aws cloudformation delete-stack --stack-name yt-setlist-discord
+            aws cloudformation wait stack-delete-complete --stack-name yt-setlist-discord
+          fi
+
+      - name: SAM Deploy
+        run: |
+          # 用 node 產生參數檔，避免 shell 引號問題
+          node -e "
+            const params = {
+              YouTubeApiKey: process.env.P_YT_KEY,
+              DiscordWebhookUrls: process.env.P_DISCORD,
+              ApiToken: process.env.P_TOKEN,
+              PreferredAuthors: process.env.P_AUTHORS || '[]',
+              ExtraKeywords: process.env.P_KEYWORDS || '[]',
+              MinLikes: process.env.P_LIKES || '10',
+              PlaylistPrefix: process.env.P_PREFIX || 'UULV',
+              Timezone: process.env.P_TZ || 'Asia/Tokyo',
+              CronSchedule: process.env.P_CRON || 'cron(0 0 * * ? *)',
+            };
+            const overrides = Object.entries(params)
+              .map(([k, v]) => k + '=' + JSON.stringify(v))
+              .join(' ');
+            require('fs').writeFileSync('/tmp/overrides.txt', overrides);
+          "
+
+          sam deploy --no-confirm-changeset --no-fail-on-empty-changeset \
+            --resolve-s3 \
+            --stack-name yt-setlist-discord \
+            --capabilities CAPABILITY_IAM \
+            --parameter-overrides "$(cat /tmp/overrides.txt)"
+        env:
+          P_YT_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          P_DISCORD: ${{ secrets.DISCORD_WEBHOOK_URLS }}
+          P_TOKEN: ${{ secrets.API_TOKEN }}
+          P_AUTHORS: ${{ secrets.PREFERRED_AUTHORS }}
+          P_KEYWORDS: ${{ secrets.EXTRA_KEYWORDS }}
+          P_LIKES: ${{ secrets.MIN_LIKES }}
+          P_PREFIX: ${{ secrets.PLAYLIST_PREFIX }}
+          P_TZ: ${{ secrets.TIMEZONE }}
+          P_CRON: ${{ secrets.AWS_CRON_SCHEDULE }}

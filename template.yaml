@@ -1,0 +1,123 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: yt-setlist-discord - 自動偵測 YouTube 歌單留言並發送到 Discord
+
+# 以下設定通常不需要修改，直接 sam deploy --guided 即可
+# 部署過程會引導你輸入必要參數
+
+Globals:
+  Function:
+    Timeout: 60
+    Runtime: nodejs22.x
+    MemorySize: 256
+
+Resources:
+  # DynamoDB 用於儲存已處理的影片狀態
+  StateTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-state"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+
+  SetlistFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handler.handler
+      Environment:
+        Variables:
+          YOUTUBE_API_KEY: !Ref YouTubeApiKey
+          DISCORD_WEBHOOK_URLS: !Ref DiscordWebhookUrls
+          API_TOKEN: !Ref ApiToken
+          DYNAMODB_TABLE: !Ref StateTable
+          PREFERRED_AUTHORS: !Ref PreferredAuthors
+          EXTRA_KEYWORDS: !Ref ExtraKeywords
+          MIN_LIKES: !Ref MinLikes
+          PLAYLIST_PREFIX: !Ref PlaylistPrefix
+          TIMEZONE: !Ref Timezone
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref StateTable
+      Events:
+        # 每天自動檢查一次（可在部署後到 EventBridge 調整）
+        ScheduledCheck:
+          Type: Schedule
+          Properties:
+            Schedule: !Ref CronSchedule
+            Description: 每天檢查頻道的新歌單留言
+        # HTTP 端點（手動觸發用）
+        # 用法：GET /check?video=<id>&token=<密碼>
+        HttpCheck:
+          Type: HttpApi
+          Properties:
+            Path: /check
+            Method: GET
+        HttpStatus:
+          Type: HttpApi
+          Properties:
+            Path: /status
+            Method: GET
+        HttpChannels:
+          Type: HttpApi
+          Properties:
+            Path: /channels
+            Method: GET
+        HttpApiChannelsGet:
+          Type: HttpApi
+          Properties:
+            Path: /api/channels
+            Method: GET
+        HttpApiChannelsPost:
+          Type: HttpApi
+          Properties:
+            Path: /api/channels
+            Method: POST
+
+# 以下參數在 sam deploy --guided 時會互動式詢問
+Parameters:
+  YouTubeApiKey:
+    Type: String
+    NoEcho: true
+    Description: YouTube Data API v3 金鑰
+  DiscordWebhookUrls:
+    Type: String
+    Description: 'Discord Webhook URL（JSON 陣列，例：["https://discord.com/api/webhooks/xxx"]）'
+  ApiToken:
+    Type: String
+    NoEcho: true
+    Description: HTTP API 認證密碼（自行設定）
+  # 以下為可選參數，不填則使用預設值
+  CronSchedule:
+    Type: String
+    Default: 'cron(0 0 * * ? *)'
+    Description: '定時排程（EventBridge cron 格式，預設每天 UTC 00:00）'
+  PreferredAuthors:
+    Type: String
+    Default: '[]'
+    Description: '優先作者（JSON 陣列，例：["@KL-gr1my"]）'
+  ExtraKeywords:
+    Type: String
+    Default: '[]'
+    Description: '附加關鍵字（JSON 陣列，例：["歌ってみた"]）'
+  MinLikes:
+    Type: String
+    Default: '10'
+    Description: 最低讚數門檻（預設 10）
+  PlaylistPrefix:
+    Type: String
+    Default: 'UULV'
+    Description: 播放清單前綴（UULV=直播, UU=全部）
+  Timezone:
+    Type: String
+    Default: 'Asia/Tokyo'
+    Description: 時區
+
+Outputs:
+  ApiUrl:
+    Description: HTTP API 端點（部署完成後顯示）
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/check"

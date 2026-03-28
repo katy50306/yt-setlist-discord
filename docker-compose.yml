@@ -1,0 +1,11 @@
+services:
+  yt-setlist:
+    build: .
+    env_file: .env
+    environment:
+      - TZ=${TZ:-UTC}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

@@ -1,0 +1,43 @@
+# yt-setlist-discord — Cloudflare Workers 設定
+#
+# 部署步驟：
+#   1. 設定密鑰（互動式輸入，不存在本地）：
+#      wrangler secret put YOUTUBE_API_KEY
+#      wrangler secret put API_TOKEN
+#      wrangler secret put DISCORD_WEBHOOK_URLS
+#      wrangler secret put YOUTUBE_CHANNELS
+#
+#   2. 部署：wrangler deploy
+#
+# 或透過 GitHub 連結自動部署（見 README）
+
+name = "yt-setlist-discord"
+main = "src/worker.js"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+preview_urls = false
+
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+invocation_logs = true
+
+# KV 儲存（用於記錄已處理的影片，避免重複發送）
+# 建立方式：wrangler kv namespace create STATE_KV
+# 建立後把回傳的 id 填入下方
+[[kv_namespaces]]
+binding = "STATE_KV"
+id = "填入你的KV_NAMESPACE_ID"
+
+# 定時觸發（每天 00:00 UTC 自動檢查）
+[triggers]
+crons = ["0 0 * * *"]
+
+# 以下為可選設定，不需要的可以不改
+[vars]
+# PLAYLIST_PREFIX = "UULV"  # UULV=直播（預設）、UU=全部、UULF=完整影片
+# TIMEZONE = "Asia/Tokyo"
+# MIN_LIKES = "0"           # 最低讚數門檻（預設 0 不過濾）

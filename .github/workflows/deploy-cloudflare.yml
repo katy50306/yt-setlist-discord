@@ -1,0 +1,132 @@
+# 部署到 Cloudflare Workers
+#
+# 使用前需在 GitHub Settings → Secrets and variables → Actions 設定：
+#   CLOUDFLARE_API_TOKEN   — Cloudflare API Token（需 Workers + KV 權限）
+#   CLOUDFLARE_ACCOUNT_ID  — Cloudflare Account ID
+#   YOUTUBE_API_KEY        — YouTube Data API v3 金鑰
+#   DISCORD_WEBHOOK_URLS   — Discord Webhook URL（JSON 陣列）
+#   API_TOKEN              — HTTP API 認證密碼
+#
+# 頻道管理：部署後透過 /channels 頁面新增（不需要 GitHub Secret）
+#
+# 可選（有設才生效）：
+#   PREFERRED_AUTHORS      — 優先作者（JSON 陣列）
+#   EXTRA_KEYWORDS         — 附加關鍵字（JSON 陣列）
+#   MIN_LIKES              — 最低讚數門檻（預設 10）
+#   PLAYLIST_PREFIX        — 播放清單前綴（預設 UULV）
+#   TIMEZONE               — 時區（預設 Asia/Tokyo）
+
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch: # 允許手動觸發
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      has_secrets: ${{ steps.check.outputs.has_secrets }}
+    steps:
+      - id: check
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -n "$CF_TOKEN" ]; then
+            echo "has_secrets=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_secrets=false" >> $GITHUB_OUTPUT
+            echo "CLOUDFLARE_API_TOKEN not set, skipping deployment"
+          fi
+
+  deploy:
+    needs: check
+    if: needs.check.outputs.has_secrets == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm ci
+
+      # 建立 KV namespace（如果不存在）
+      - name: Setup KV namespace
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # 取得現有 KV namespace 列表，找 STATE_KV
+          KV_ID=$(npx wrangler kv namespace list 2>/dev/null | node -e "
+            let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
+              try {
+                const list=JSON.parse(d);
+                const ns=list.find(n=>n.title.includes('STATE_KV'));
+                console.log(ns?ns.id:'');
+              } catch { console.log(''); }
+            })
+          ")
+
+          if [ -n "$KV_ID" ]; then
+            echo "KV namespace found: $KV_ID"
+          else
+            echo "Creating KV namespace..."
+            npx wrangler kv namespace create STATE_KV
+            # 重新取得 ID
+            KV_ID=$(npx wrangler kv namespace list 2>/dev/null | node -e "
+              let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
+                try {
+                  const list=JSON.parse(d);
+                  const ns=list.find(n=>n.title.includes('STATE_KV'));
+                  console.log(ns?ns.id:'');
+                } catch { console.log(''); }
+              })
+            ")
+          fi
+
+          if [ -z "$KV_ID" ]; then
+            echo "ERROR: Could not find or create KV namespace"
+            exit 1
+          fi
+
+          echo "KV_NAMESPACE_ID=$KV_ID" >> $GITHUB_ENV
+
+      # 更新 wrangler.toml 的 KV ID
+      - name: Configure wrangler.toml
+        run: |
+          sed -i "s/id = \"填入你的KV_NAMESPACE_ID\"/id = \"$KV_NAMESPACE_ID\"/" wrangler.toml
+
+      # 設定 secrets（用 env 傳入避免 shell 吃掉 JSON 引號）
+      - name: Set secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          S_YT_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          S_DISCORD: ${{ secrets.DISCORD_WEBHOOK_URLS }}
+          S_TOKEN: ${{ secrets.API_TOKEN }}
+          S_AUTHORS: ${{ secrets.PREFERRED_AUTHORS }}
+          S_KEYWORDS: ${{ secrets.EXTRA_KEYWORDS }}
+          S_LIKES: ${{ secrets.MIN_LIKES }}
+          S_PREFIX: ${{ secrets.PLAYLIST_PREFIX }}
+          S_TZ: ${{ secrets.TIMEZONE }}
+        run: |
+          printf '%s' "$S_YT_KEY" | npx wrangler secret put YOUTUBE_API_KEY
+          printf '%s' "$S_DISCORD" | npx wrangler secret put DISCORD_WEBHOOK_URLS
+          printf '%s' "$S_TOKEN" | npx wrangler secret put API_TOKEN
+
+          # 可選變數（有設才傳入）
+          if [ -n "$S_AUTHORS" ]; then printf '%s' "$S_AUTHORS" | npx wrangler secret put PREFERRED_AUTHORS; fi
+          if [ -n "$S_KEYWORDS" ]; then printf '%s' "$S_KEYWORDS" | npx wrangler secret put EXTRA_KEYWORDS; fi
+          if [ -n "$S_LIKES" ]; then printf '%s' "$S_LIKES" | npx wrangler secret put MIN_LIKES; fi
+          if [ -n "$S_PREFIX" ]; then printf '%s' "$S_PREFIX" | npx wrangler secret put PLAYLIST_PREFIX; fi
+          if [ -n "$S_TZ" ]; then printf '%s' "$S_TZ" | npx wrangler secret put TIMEZONE; fi
+
+      # 部署
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy
