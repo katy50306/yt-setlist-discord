@@ -10,11 +10,12 @@
 # 頻道管理：部署後透過 /channels 頁面新增（不需要 GitHub Secret）
 #
 # 可選（有設才生效）：
-#   PREFERRED_AUTHORS      — 優先作者（JSON 陣列）
-#   EXTRA_KEYWORDS         — 附加關鍵字（JSON 陣列）
-#   MIN_LIKES              — 最低讚數門檻（預設 10）
-#   PLAYLIST_PREFIX        — 播放清單前綴（預設 UULV）
-#   TIMEZONE               — 時區（預設 Asia/Tokyo）
+#   PREFERRED_AUTHORS               — 優先作者（JSON 陣列）
+#   PREFERRED_AUTHOR_COOLDOWN_HOURS — 優先作者冷卻期小時數（預設 6）
+#   EXTRA_KEYWORDS                  — 附加關鍵字（JSON 陣列）
+#   MIN_LIKES                       — 最低讚數門檻（預設 10）
+#   PLAYLIST_PREFIX                 — 播放清單前綴（預設 UULV）
+#   TIMEZONE                        — 時區（預設 Asia/Tokyo）
 
 name: Deploy to Cloudflare Workers
 
@@ -108,6 +109,7 @@ jobs:
           S_DISCORD: ${{ secrets.DISCORD_WEBHOOK_URLS }}
           S_TOKEN: ${{ secrets.API_TOKEN }}
           S_AUTHORS: ${{ secrets.PREFERRED_AUTHORS }}
+          S_COOLDOWN: ${{ secrets.PREFERRED_AUTHOR_COOLDOWN_HOURS }}
           S_KEYWORDS: ${{ secrets.EXTRA_KEYWORDS }}
           S_LIKES: ${{ secrets.MIN_LIKES }}
           S_PREFIX: ${{ secrets.PLAYLIST_PREFIX }}
@@ -119,6 +121,7 @@ jobs:
 
           # 可選變數（有設才傳入）
           if [ -n "$S_AUTHORS" ]; then printf '%s' "$S_AUTHORS" | npx wrangler secret put PREFERRED_AUTHORS; fi
+          if [ -n "$S_COOLDOWN" ]; then printf '%s' "$S_COOLDOWN" | npx wrangler secret put PREFERRED_AUTHOR_COOLDOWN_HOURS; fi
           if [ -n "$S_KEYWORDS" ]; then printf '%s' "$S_KEYWORDS" | npx wrangler secret put EXTRA_KEYWORDS; fi
           if [ -n "$S_LIKES" ]; then printf '%s' "$S_LIKES" | npx wrangler secret put MIN_LIKES; fi
           if [ -n "$S_PREFIX" ]; then printf '%s' "$S_PREFIX" | npx wrangler secret put PLAYLIST_PREFIX; fi

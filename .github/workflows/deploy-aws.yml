@@ -11,11 +11,12 @@
 # 頻道管理：部署後透過 /channels 頁面新增（不需要 GitHub Secret）
 #
 # 可選（有設才生效）：
-#   PREFERRED_AUTHORS      — 優先作者（JSON 陣列）
-#   EXTRA_KEYWORDS         — 附加關鍵字（JSON 陣列）
-#   MIN_LIKES              — 最低讚數門檻（預設 10）
-#   PLAYLIST_PREFIX        — 播放清單前綴（預設 UULV）
-#   TIMEZONE               — 時區（預設 Asia/Tokyo）
+#   PREFERRED_AUTHORS               — 優先作者（JSON 陣列）
+#   PREFERRED_AUTHOR_COOLDOWN_HOURS — 優先作者冷卻期小時數（預設 6）
+#   EXTRA_KEYWORDS                  — 附加關鍵字（JSON 陣列）
+#   MIN_LIKES                       — 最低讚數門檻（預設 10）
+#   PLAYLIST_PREFIX                 — 播放清單前綴（預設 UULV）
+#   TIMEZONE                        — 時區（預設 Asia/Tokyo）
 
 name: Deploy to AWS Lambda
 
@@ -83,6 +84,7 @@ jobs:
               DiscordWebhookUrls: process.env.P_DISCORD,
               ApiToken: process.env.P_TOKEN,
               PreferredAuthors: process.env.P_AUTHORS || '[]',
+              PreferredAuthorCooldownHours: process.env.P_COOLDOWN || '6',
               ExtraKeywords: process.env.P_KEYWORDS || '[]',
               MinLikes: process.env.P_LIKES || '10',
               PlaylistPrefix: process.env.P_PREFIX || 'UULV',
@@ -105,6 +107,7 @@ jobs:
           P_DISCORD: ${{ secrets.DISCORD_WEBHOOK_URLS }}
           P_TOKEN: ${{ secrets.API_TOKEN }}
           P_AUTHORS: ${{ secrets.PREFERRED_AUTHORS }}
+          P_COOLDOWN: ${{ secrets.PREFERRED_AUTHOR_COOLDOWN_HOURS }}
           P_KEYWORDS: ${{ secrets.EXTRA_KEYWORDS }}
           P_LIKES: ${{ secrets.MIN_LIKES }}
           P_PREFIX: ${{ secrets.PLAYLIST_PREFIX }}
