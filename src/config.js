@@ -73,6 +73,7 @@ export const CONFIG = {
     likeWeight: 2,
     lengthWeight: 0.1,
     preferredAuthorBonus: 50,
+    preferredAuthorCooldownHours: parseInt(process.env.PREFERRED_AUTHOR_COOLDOWN_HOURS, 10) || 6,
   },
 
   cron: {

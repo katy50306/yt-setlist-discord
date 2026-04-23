@@ -113,6 +113,23 @@ scheduler 啟動時立即執行 `checkChannels()` 會導致每次 restart 重複
 
 Log 加 `[preferred-author]`、`[timestamp+likes]`、`[keyword]` 標示命中層級，方便 debug。
 
+### 關鍵字層級至少需要 2 個時間戳
+
+原本優先級 3 只要有關鍵字 + 字數/行數門檻就匹配。實際遇到誤判：純感想留言「今日の歌枠も楽しかった」含 1 個時間戳和關鍵字「今日の歌」，被當成歌單。
+
+**決策**：優先級 3 加上 `KEYWORD_MIN_TIMESTAMPS = 2` 門檻。純文字長留言沒有時間戳就不是歌單。
+
+### 優先作者冷卻期
+
+有 `PREFERRED_AUTHORS` 時，直播剛結束可能其他人先發了粗略歌單（只有幾個時間戳、無關鍵字），優先作者還沒來得及發，結果被優先級 2 或 3 搶先匹配。
+
+**決策**：加 `PREFERRED_AUTHOR_COOLDOWN_HOURS`（預設 6）。直播結束後 N 小時內只匹配優先作者，N 小時後才 fallback 到其他優先級。
+
+基準選擇 `actualEndTime`：
+- 直播中/未開播 → `actualEndTime` 為 null → 視為冷卻中（永遠等優先作者）
+- 已結束 → 用 `actualEndTime + N 小時` 判斷
+- 不用 `scheduledStartTime`：耐久歌枠可能 10+ 小時，用開播時間會太早解除冷卻
+
 ## API Token
 
 ### URL 特殊字元

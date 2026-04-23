@@ -1,6 +1,7 @@
 import { CONFIG } from './config.js'
 
 const TIMESTAMP_RE = /\d{1,2}:\d{2}(?::\d{2})?/g
+const KEYWORD_MIN_TIMESTAMPS = 2
 
 function timestampToSeconds(ts) {
   const parts = ts.split(':').map(Number)
@@ -17,7 +18,14 @@ function mergeByTimestamp(candidates) {
   return { text, author: authors.join(', ') }
 }
 
-export function findSetlistComment(comments) {
+/**
+ * Find setlist comment from a video's comments.
+ *
+ * @param {Array} comments
+ * @param {{ onlyPreferred?: boolean }} options
+ *   - onlyPreferred: during cooldown, only check preferred authors (priority 1)
+ */
+export function findSetlistComment(comments, { onlyPreferred = false } = {}) {
   const {
     minTimestamps, minLikes, likeWeight,
     minLength, minLines, lengthWeight,
@@ -42,6 +50,9 @@ export function findSetlistComment(comments) {
     }
   }
 
+  // In cooldown window: skip priority 2 and 3
+  if (onlyPreferred) return null
+
   // Priority 2: timestamps + likes
   const timestampCandidates = withMatches.filter(c =>
     c._tsMatches.length >= minTimestamps && c.likeCount >= minLikes
@@ -50,9 +61,11 @@ export function findSetlistComment(comments) {
     return { ...mergeByTimestamp(timestampCandidates), matchedBy: 'timestamp+likes' }
   }
 
-  // Priority 3: keyword matching — single best
+  // Priority 3: keyword matching — requires at least KEYWORD_MIN_TIMESTAMPS timestamps
+  // (pure prose comments without timestamps aren't setlists)
   const keywordCandidates = withMatches
     .filter(c => {
+      if (c._tsMatches.length < KEYWORD_MIN_TIMESTAMPS) return false
       const hasKeyword = lowerKeywords.some(kw => c._lower.includes(kw))
       return hasKeyword && (c._lines >= minLines || c.text.length >= minLength)
     })

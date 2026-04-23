@@ -43,6 +43,7 @@ export async function getVideoDetails(videoId) {
     id: videoId,
     title: item.snippet.title,
     time: extractVideoTime(item),
+    actualEndTime: item.liveStreamingDetails?.actualEndTime || null,
     channelTitle: item.snippet.channelTitle,
   }
 }
@@ -64,6 +65,7 @@ export async function getVideoDetailsBatch(videoIds) {
     id: item.id,
     title: item.snippet.title,
     time: extractVideoTime(item),
+    actualEndTime: item.liveStreamingDetails?.actualEndTime || null,
     channelTitle: item.snippet.channelTitle,
   }))
 }

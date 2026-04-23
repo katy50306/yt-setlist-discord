@@ -51,10 +51,25 @@ export async function processVideo(videoOrId, options = {}) {
   const comments = await getVideoComments(video.id)
   console.log(`  Fetched ${comments.length} comments`)
 
-  const result = findSetlistComment(comments)
+  // Preferred-author cooldown: if author list set, within N hours of stream end
+  // (or stream hasn't ended), only match preferred authors. Gives them time to
+  // post the setlist before falling back to other comments.
+  let onlyPreferred = false
+  if (CONFIG.preferredAuthors.length > 0) {
+    const cooldownMs = CONFIG.commentFilter.preferredAuthorCooldownHours * 3600_000
+    if (!video.actualEndTime) {
+      onlyPreferred = true
+    } else {
+      const elapsed = Date.now() - new Date(video.actualEndTime).getTime()
+      if (elapsed < cooldownMs) onlyPreferred = true
+    }
+  }
+
+  const result = findSetlistComment(comments, { onlyPreferred })
 
   if (!result) {
-    console.log('  No setlist comment found')
+    if (onlyPreferred) console.log('  No preferred-author setlist yet (in cooldown)')
+    else console.log('  No setlist comment found')
     return { videoId: video.id, found: false }
   }
 
