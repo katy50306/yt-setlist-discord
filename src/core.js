@@ -98,7 +98,7 @@ export async function checkChannels(options = {}) {
   const state = await loadState()
   resolveChannelsFromState(state)
   console.log('Checking channels for new videos...')
-  const videos = await getRecentVideos(CONFIG.channelIds)
+  const videos = await getRecentVideos(CONFIG.channelIds, CONFIG.youtube.maxVideosPerChannel)
   console.log(`Found ${videos.length} recent videos across all channels`)
 
   const toProcessIds = videos.filter(v => shouldProcess(state, v.id))

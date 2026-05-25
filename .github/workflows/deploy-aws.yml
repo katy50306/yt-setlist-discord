@@ -15,6 +15,7 @@
 #   PREFERRED_AUTHOR_COOLDOWN_HOURS — 優先作者冷卻期小時數（預設 6）
 #   EXTRA_KEYWORDS                  — 附加關鍵字（JSON 陣列）
 #   MIN_LIKES                       — 最低讚數門檻（預設 10）
+#   MAX_VIDEOS_PER_CHANNEL          — 每頻道掃描的最新影片數（預設 3）
 #   PLAYLIST_PREFIX                 — 播放清單前綴（預設 UULV）
 #   TIMEZONE                        — 時區（預設 Asia/Tokyo）
 
@@ -87,6 +88,7 @@ jobs:
               PreferredAuthorCooldownHours: process.env.P_COOLDOWN || '6',
               ExtraKeywords: process.env.P_KEYWORDS || '[]',
               MinLikes: process.env.P_LIKES || '10',
+              MaxVideosPerChannel: process.env.P_MAX_VIDEOS || '3',
               PlaylistPrefix: process.env.P_PREFIX || 'UULV',
               Timezone: process.env.P_TZ || 'Asia/Tokyo',
               CronSchedule: process.env.P_CRON || 'cron(0 0 * * ? *)',
@@ -110,6 +112,7 @@ jobs:
           P_COOLDOWN: ${{ secrets.PREFERRED_AUTHOR_COOLDOWN_HOURS }}
           P_KEYWORDS: ${{ secrets.EXTRA_KEYWORDS }}
           P_LIKES: ${{ secrets.MIN_LIKES }}
+          P_MAX_VIDEOS: ${{ secrets.MAX_VIDEOS_PER_CHANNEL }}
           P_PREFIX: ${{ secrets.PLAYLIST_PREFIX }}
           P_TZ: ${{ secrets.TIMEZONE }}
           P_CRON: ${{ secrets.AWS_CRON_SCHEDULE }}

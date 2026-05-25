@@ -48,6 +48,7 @@ export const CONFIG = {
     textFormat: 'plainText',
     playlistPrefix: process.env.PLAYLIST_PREFIX || 'UULV',
     searchMaxResults: parseInt(process.env.SEARCH_MAX_RESULTS, 10) || 50,
+    maxVideosPerChannel: parseInt(process.env.MAX_VIDEOS_PER_CHANNEL, 10) || 3,
   },
 
   // Resolved channel IDs — populated from storage by ensureChannelsResolved()

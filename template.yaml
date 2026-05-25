@@ -39,6 +39,7 @@ Resources:
           EXTRA_KEYWORDS: !Ref ExtraKeywords
           MIN_LIKES: !Ref MinLikes
           PREFERRED_AUTHOR_COOLDOWN_HOURS: !Ref PreferredAuthorCooldownHours
+          MAX_VIDEOS_PER_CHANNEL: !Ref MaxVideosPerChannel
           PLAYLIST_PREFIX: !Ref PlaylistPrefix
           TIMEZONE: !Ref Timezone
       Policies:
@@ -113,6 +114,10 @@ Parameters:
     Type: String
     Default: '6'
     Description: 優先作者冷卻期小時數（預設 6）
+  MaxVideosPerChannel:
+    Type: String
+    Default: '3'
+    Description: 定時檢查時每頻道掃描的最新影片數（預設 3）
   PlaylistPrefix:
     Type: String
     Default: 'UULV'
