@@ -54,14 +54,17 @@ export async function processVideo(videoOrId, options = {}) {
   // Preferred-author cooldown: if author list set, within N hours of stream end
   // (or stream hasn't ended), only match preferred authors. Gives them time to
   // post the setlist before falling back to other comments.
+  // Non-live uploads have no end time — cooldown counts from publish time instead.
   let onlyPreferred = false
   if (CONFIG.preferredAuthors.length > 0) {
     const cooldownMs = CONFIG.commentFilter.preferredAuthorCooldownHours * 3600_000
-    if (!video.actualEndTime) {
-      onlyPreferred = true
+    if (video.isLive && !video.actualEndTime) {
+      onlyPreferred = true // stream ongoing (or waiting room): always wait
     } else {
-      const elapsed = Date.now() - new Date(video.actualEndTime).getTime()
-      if (elapsed < cooldownMs) onlyPreferred = true
+      const anchor = video.actualEndTime || video.time
+      if (anchor && Date.now() - new Date(anchor).getTime() < cooldownMs) {
+        onlyPreferred = true
+      }
     }
   }
 
@@ -146,8 +149,10 @@ export async function searchAndProcess(from, to, options = {}) {
   if (!to) to = new Date().toISOString().split('T')[0]
   await ensureChannelsResolved()
 
-  const videos = await searchVideos(from, to)
-  console.log(`Found ${videos.length} video(s) in date range`)
+  const searchResults = await searchVideos(from, to)
+  console.log(`Found ${searchResults.length} video(s) in date range`)
+  // Search results lack liveStreamingDetails — fetch full shape for cooldown logic
+  const videos = await getVideoDetailsBatch(searchResults.map(v => v.id))
 
   let found = 0
   let errors = 0

@@ -39,35 +39,38 @@ export async function getVideoDetails(videoId) {
   const item = data.items?.[0]
   if (!item) throw new Error(`Video not found: ${videoId}`)
 
+  return toVideo(videoId, item)
+}
+
+function toVideo(id, item) {
   return {
-    id: videoId,
+    id,
     title: item.snippet.title,
     time: extractVideoTime(item),
+    // isLive: video has live metadata (ongoing, upcoming, or ended stream)
+    isLive: !!item.liveStreamingDetails,
     actualEndTime: item.liveStreamingDetails?.actualEndTime || null,
     channelTitle: item.snippet.channelTitle,
   }
 }
 
 /**
- * Batch fetch video details. 1 API unit regardless of count (max 50 IDs).
+ * Batch fetch video details. 1 API unit per 50 IDs (API limit per request).
  */
 export async function getVideoDetailsBatch(videoIds) {
-  if (videoIds.length === 0) return []
+  const videos = []
 
-  const params = new URLSearchParams({
-    part: 'snippet,liveStreamingDetails',
-    id: videoIds.join(','),
-  })
+  for (let i = 0; i < videoIds.length; i += 50) {
+    const params = new URLSearchParams({
+      part: 'snippet,liveStreamingDetails',
+      id: videoIds.slice(i, i + 50).join(','),
+    })
 
-  const data = await ytApiFetch('videos', params, 'YouTube videos API error')
+    const data = await ytApiFetch('videos', params, 'YouTube videos API error')
+    videos.push(...(data.items || []).map(item => toVideo(item.id, item)))
+  }
 
-  return (data.items || []).map(item => ({
-    id: item.id,
-    title: item.snippet.title,
-    time: extractVideoTime(item),
-    actualEndTime: item.liveStreamingDetails?.actualEndTime || null,
-    channelTitle: item.snippet.channelTitle,
-  }))
+  return videos
 }
 
 export async function getRecentVideos(channelIds, maxPerChannel = 1) {

@@ -15,7 +15,8 @@
   "scripts": {
     "start": "node src/index.js",
     "check": "node src/index.js --check",
-    "check:dry": "node src/index.js --check --dry-run"
+    "check:dry": "node src/index.js --check --dry-run",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=22.0.0"

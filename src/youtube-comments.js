@@ -7,6 +7,9 @@ export async function getVideoComments(videoId) {
     part: 'snippet,replies',
     videoId,
     maxResults: String(CONFIG.youtube.maxResults),
+    // relevance keeps high-liked setlist comments within the first page even
+    // on older videos with hundreds of comments (default 'time' buries them)
+    order: 'relevance',
   })
 
   const data = await ytApiFetch('commentThreads', params, 'YouTube commentThreads API error')

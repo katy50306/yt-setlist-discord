@@ -3,6 +3,12 @@ if (typeof globalThis.process?.versions?.node === 'string') {
   try { await import('dotenv/config') } catch {}
 }
 
+// parseInt with fallback that still allows explicit 0 (`|| default` would not)
+function intEnv(envValue, fallback) {
+  const n = parseInt(envValue, 10)
+  return Number.isFinite(n) ? n : fallback
+}
+
 function parseJsonArray(envValue, name) {
   if (!envValue) return []
   try {
@@ -47,8 +53,8 @@ export const CONFIG = {
     maxResults: 100,
     textFormat: 'plainText',
     playlistPrefix: process.env.PLAYLIST_PREFIX || 'UULV',
-    searchMaxResults: parseInt(process.env.SEARCH_MAX_RESULTS, 10) || 50,
-    maxVideosPerChannel: parseInt(process.env.MAX_VIDEOS_PER_CHANNEL, 10) || 3,
+    searchMaxResults: intEnv(process.env.SEARCH_MAX_RESULTS, 50),
+    maxVideosPerChannel: intEnv(process.env.MAX_VIDEOS_PER_CHANNEL, 3),
   },
 
   // Resolved channel IDs — populated from storage by ensureChannelsResolved()
@@ -68,13 +74,13 @@ export const CONFIG = {
 
   commentFilter: {
     minTimestamps: 3,
-    minLikes: parseInt(process.env.MIN_LIKES, 10) || 10,
+    minLikes: intEnv(process.env.MIN_LIKES, 10),
     minLength: 100,
     minLines: 3,
     likeWeight: 2,
     lengthWeight: 0.1,
     preferredAuthorBonus: 50,
-    preferredAuthorCooldownHours: parseInt(process.env.PREFERRED_AUTHOR_COOLDOWN_HOURS, 10) || 6,
+    preferredAuthorCooldownHours: intEnv(process.env.PREFERRED_AUTHOR_COOLDOWN_HOURS, 6),
   },
 
   cron: {
@@ -84,7 +90,7 @@ export const CONFIG = {
   timezone: process.env.TIMEZONE || 'Asia/Tokyo',
 
   server: {
-    port: parseInt(process.env.PORT, 10) || 3000,
+    port: intEnv(process.env.PORT, 3000),
     apiToken: process.env.API_TOKEN,
   },
 

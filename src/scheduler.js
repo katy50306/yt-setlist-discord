@@ -4,7 +4,7 @@ import { checkChannels } from './core.js'
 
 /**
  * Start the cron scheduler.
- * Runs checkChannels immediately on start, then on the configured schedule.
+ * Runs checkChannels on the configured schedule.
  */
 export function startScheduler() {
   const schedule = CONFIG.cron.schedule
