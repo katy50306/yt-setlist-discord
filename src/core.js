@@ -4,6 +4,7 @@ import { findSetlistComment } from './comment-matcher.js'
 import { sendSetlistComment } from './discord-sender.js'
 import { getRecentVideos, getVideoDetails, getVideoDetailsBatch } from './youtube-channel.js'
 import { searchVideos } from './youtube-search.js'
+import { getStreamlistVideoIds } from './streamlist-source.js'
 import { initStateAdapter, loadState, saveState, shouldProcess, markProcessed, pruneState, getChannels } from './state.js'
 import { resolveChannels } from './channel-resolver.js'
 
@@ -104,13 +105,33 @@ export async function checkChannels(options = {}) {
   const videos = await getRecentVideos(CONFIG.channelIds, CONFIG.youtube.maxVideosPerChannel)
   console.log(`Found ${videos.length} recent videos across all channels`)
 
-  const toProcessIds = videos.filter(v => shouldProcess(state, v.id))
+  // Merge external streamlist source — catches videos absent from the
+  // uploads playlist (copyright-blocked, members-only, index-delayed)
+  const extraIds = await getStreamlistVideoIds(CONFIG.youtube.maxVideosPerChannel)
+  const knownIds = new Set(videos.map(v => v.id))
+  const extras = extraIds.filter(id => !knownIds.has(id)).map(id => ({ id }))
+  if (extras.length > 0) {
+    console.log(`Streamlist source added ${extras.length} video(s) not in playlist`)
+  }
+
+  const toProcessIds = [...videos, ...extras].filter(v => shouldProcess(state, v.id))
   console.log(`${toProcessIds.length} video(s) to process`)
 
-  // Batch fetch details (scheduledStartTime) — 1 unit regardless of count
-  const toProcess = toProcessIds.length > 0
+  // Batch fetch details (scheduledStartTime) — 1 unit per 50 videos.
+  // Also drops deleted/private videos (absent from the API response).
+  const allDetails = toProcessIds.length > 0
     ? await getVideoDetailsBatch(toProcessIds.map(v => v.id))
     : []
+
+  // Ongoing/upcoming streams can't have a final setlist yet — skip without
+  // marking processed so they're picked up again next run
+  const toProcess = allDetails.filter(v => {
+    if (v.isLive && !v.actualEndTime) {
+      console.log(`  Skipping (still live): ${v.title || v.id}`)
+      return false
+    }
+    return true
+  })
 
   let found = 0
   let errors = 0

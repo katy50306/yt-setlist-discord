@@ -18,6 +18,7 @@
 #   MAX_VIDEOS_PER_CHANNEL          — 每頻道掃描的最新影片數（預設 3）
 #   PLAYLIST_PREFIX                 — 播放清單前綴（預設 UULV）
 #   TIMEZONE                        — 時區（預設 Asia/Tokyo）
+#   STREAMLIST_API_URL              — 外部影片來源 API（補足版權封鎖/會限影片）
 
 name: Deploy to AWS Lambda
 
@@ -92,6 +93,7 @@ jobs:
               PlaylistPrefix: process.env.P_PREFIX || 'UULV',
               Timezone: process.env.P_TZ || 'Asia/Tokyo',
               CronSchedule: process.env.P_CRON || 'cron(0 0 * * ? *)',
+              StreamlistApiUrl: process.env.P_STREAMLIST || '',
             };
             const overrides = Object.entries(params)
               .map(([k, v]) => k + '=' + JSON.stringify(v))
@@ -116,3 +118,4 @@ jobs:
           P_PREFIX: ${{ secrets.PLAYLIST_PREFIX }}
           P_TZ: ${{ secrets.TIMEZONE }}
           P_CRON: ${{ secrets.AWS_CRON_SCHEDULE }}
+          P_STREAMLIST: ${{ secrets.STREAMLIST_API_URL }}

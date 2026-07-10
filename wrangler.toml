@@ -41,3 +41,4 @@ crons = ["0 0 * * *"]
 # PLAYLIST_PREFIX = "UULV"  # UULV=直播（預設）、UU=全部、UULF=完整影片
 # TIMEZONE = "Asia/Tokyo"
 # MIN_LIKES = "10"          # 最低讚數門檻（預設 10；設 0 = 不過濾）
+# STREAMLIST_API_URL = ""   # 外部影片來源 API（補足版權封鎖/會限影片）

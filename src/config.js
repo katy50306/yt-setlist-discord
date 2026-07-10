@@ -60,6 +60,11 @@ export const CONFIG = {
   // Resolved channel IDs — populated from storage by ensureChannelsResolved()
   channelIds: [],
 
+  // Optional external video-id source (PubSub-backed, e.g. berry-site
+  // /api/streamlist). Catches videos absent from the uploads playlist:
+  // copyright-blocked, members-only, or index-delayed. Empty = disabled.
+  streamlistApiUrl: process.env.STREAMLIST_API_URL || '',
+
   webhookUrls,
   preferredAuthors,
   extraKeywords,

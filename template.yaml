@@ -42,6 +42,7 @@ Resources:
           MAX_VIDEOS_PER_CHANNEL: !Ref MaxVideosPerChannel
           PLAYLIST_PREFIX: !Ref PlaylistPrefix
           TIMEZONE: !Ref Timezone
+          STREAMLIST_API_URL: !Ref StreamlistApiUrl
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref StateTable
@@ -126,6 +127,10 @@ Parameters:
     Type: String
     Default: 'Asia/Tokyo'
     Description: 時區
+  StreamlistApiUrl:
+    Type: String
+    Default: ''
+    Description: '外部影片來源 API（可選）— 補足 playlist 看不到的影片（版權封鎖/會限/延遲）'
 
 Outputs:
   ApiUrl:
