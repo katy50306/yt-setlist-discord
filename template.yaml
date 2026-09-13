@@ -102,7 +102,7 @@ Parameters:
   PreferredAuthors:
     Type: String
     Default: '[]'
-    Description: '優先作者（JSON 陣列，@handle 或頻道 ID，例：["@KLバカ"]；handle 自動解析成頻道 ID 並快取）'
+    Description: '優先作者。必須是 JSON 陣列（含方括號與引號），例：["@KLバカ"]；@handle 或頻道 ID 皆可，handle 自動解析成頻道 ID 並快取。只填 @KLバカ 會讓函式啟動失敗'
   ExtraKeywords:
     Type: String
     Default: '[]'

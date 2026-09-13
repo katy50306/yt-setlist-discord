@@ -191,7 +191,7 @@ import { findSetlistComment } from 'yt-setlist-discord/comment-matcher'
 
 | 變數 | 預設值 | Docker | Workers | Lambda | 說明 |
 |------|--------|--------|---------|--------|------|
-| `PREFERRED_AUTHORS` | `[]` | ✓ | ✓ | ✓ | 優先作者（JSON 陣列），填 `@handle` 或頻道 ID `UC…`；有設時啟用冷卻期邏輯。`@handle` 會自動解析成頻道 ID 並快取（見優先級 1 說明） |
+| `PREFERRED_AUTHORS` | `[]` | ✓ | ✓ | ✓ | 優先作者，填 `@handle` 或頻道 ID `UC…`；有設時啟用冷卻期邏輯。`@handle` 會自動解析成頻道 ID 並快取（見優先級 1 說明）。**必須是 JSON 陣列，方括號和引號都要**：`["@KLバカ"]`——只填 `@KLバカ` 會讓程式啟動失敗、整個服務停擺 |
 | `PREFERRED_AUTHOR_COOLDOWN_HOURS` | `6` | ✓ | ✓ | ✓ | 直播結束後冷卻期（小時），期間只等優先作者 |
 | `EXTRA_KEYWORDS` | `[]` | ✓ | ✓ | ✓ | 附加關鍵字（JSON 陣列，加在預設之後，不覆蓋） |
 | `MIN_LIKES` | `10` | ✓ | ✓ | ✓ | 最低讚數門檻，過濾讚數不足的時間戳留言 |

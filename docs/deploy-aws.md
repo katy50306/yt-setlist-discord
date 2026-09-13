@@ -48,6 +48,7 @@
 | `DISCORD_WEBHOOK_URLS` | `["https://discord.com/api/webhooks/..."]` | [申請教學](discord-webhook-setup.md) |
 | `API_TOKEN` | 自行設定的密碼（只用英數字） | HTTP API 認證用 |
 | `AWS_CRON_SCHEDULE` | `cron(0 0 * * ? *)` | （可選）自訂排程，不設則每天 UTC 00:00 |
+| `PREFERRED_AUTHORS` | `["@KLバカ"]` | （可選）優先作者。**一定要含方括號與引號**（JSON 陣列），只填 `@KLバカ` 會讓 Lambda 起不來 |
 
 ## 步驟 6：觸發部署
 

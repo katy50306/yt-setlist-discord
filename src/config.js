@@ -18,6 +18,9 @@ function parseJsonArray(envValue, name) {
   } catch {
     console.error(`ERROR: ${name} must be a valid JSON array, e.g. ["value1","value2"]`)
     console.error(`  Got: ${envValue}`)
+    if (!envValue.trim().startsWith('[')) {
+      console.error(`  Hint: wrap it in brackets and quotes → ["${envValue.trim()}"]`)
+    }
     throw new Error(`Config error`)
   }
 }

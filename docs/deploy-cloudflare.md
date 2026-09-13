@@ -39,6 +39,7 @@
 | `YOUTUBE_API_KEY` | 你的 YouTube API 金鑰 | [申請教學](youtube-api-setup.md) |
 | `DISCORD_WEBHOOK_URLS` | `["https://discord.com/api/webhooks/..."]` | [申請教學](discord-webhook-setup.md) |
 | `API_TOKEN` | 自行設定的密碼（只用英數字） | HTTP API 認證用 |
+| `PREFERRED_AUTHORS` | `["@KLバカ"]` | （可選）優先作者。**一定要含方括號與引號**（JSON 陣列），只填 `@KLバカ` 會讓 Worker 起不來 |
 
 ## 步驟 5：觸發部署
 
