@@ -10,9 +10,10 @@ process.env.PREFERRED_AUTHORS = '["@KL-gr1my"]'
 process.env.MIN_LIKES = '10'
 
 const { findSetlistComment } = await import('../src/comment-matcher.js')
+const { CONFIG } = await import('../src/config.js')
 
-function comment(text, { author = 'someone', likes = 0 } = {}) {
-  return { text, authorDisplayName: author, likeCount: likes }
+function comment(text, { author = 'someone', likes = 0, channelId = null } = {}) {
+  return { text, authorDisplayName: author, authorChannelId: channelId, likeCount: likes }
 }
 
 const chat = comment('かわいい！すごくよかった！', { likes: 50 })
@@ -58,6 +59,39 @@ test('relay setlist at priority 2 merges different authors by timestamp', () => 
   assert.equal(r.matchedBy, 'timestamp+likes')
   assert.ok(r.text.indexOf('曲一') < r.text.indexOf('曲六十一'), 'sorted by first timestamp')
   assert.equal(r.author, '@fan-A, @fan-B')
+})
+
+// --- Preferred author by channel ID (handle renames) ---
+
+const KL_ID = 'UCKcGhLko2mzHMRI5IUcfMiA'
+const SETLIST = '0:07:41 曲A\n0:20:42 曲B\n0:35:46 曲C'
+
+test('renamed handle still matches via resolved channel ID', () => {
+  CONFIG.preferredAuthorChannelIds = [KL_ID]
+  try {
+    const renamed = comment(SETLIST, { author: '@KLバカ', channelId: KL_ID })
+    const r = findSetlistComment([renamed], { onlyPreferred: true })
+    assert.equal(r?.matchedBy, 'preferred-author')
+    assert.equal(r.author, '@KLバカ')
+  } finally {
+    CONFIG.preferredAuthorChannelIds = []
+  }
+})
+
+test('same display name but different channel is not preferred', () => {
+  CONFIG.preferredAuthorChannelIds = [KL_ID]
+  try {
+    const impostor = comment(SETLIST, { author: '@KLバカ', channelId: 'UCxxxxxxxxxxxxxxxxxxxxxx' })
+    assert.equal(findSetlistComment([impostor], { onlyPreferred: true }), null)
+  } finally {
+    CONFIG.preferredAuthorChannelIds = []
+  }
+})
+
+test('display-name fallback still works when no channel ID is resolved', () => {
+  const byName = comment(SETLIST, { author: '@KL-gr1my', channelId: KL_ID })
+  const r = findSetlistComment([byName], { onlyPreferred: true })
+  assert.equal(r?.matchedBy, 'preferred-author')
 })
 
 // --- Cooldown (onlyPreferred) ---

@@ -30,7 +30,11 @@ export function findSetlistComment(comments, { onlyPreferred = false } = {}) {
     minTimestamps, minLikes, likeWeight,
     minLength, minLines, lengthWeight,
   } = CONFIG.commentFilter
-  const preferred = new Set(CONFIG.preferredAuthors)
+  // Channel ID first (survives @handle renames); display-name string as fallback
+  // for entries that could not be resolved or comments without an ID
+  const preferredNames = new Set(CONFIG.preferredAuthors)
+  const preferredIds = new Set(CONFIG.preferredAuthorChannelIds)
+  const isPreferred = c => preferredIds.has(c.authorChannelId) || preferredNames.has(c.authorDisplayName)
   const lowerKeywords = [...CONFIG.setlistKeywords, ...CONFIG.extraKeywords].map(kw => kw.toLowerCase())
 
   const withMatches = comments.map(c => ({
@@ -41,9 +45,9 @@ export function findSetlistComment(comments, { onlyPreferred = false } = {}) {
   }))
 
   // Priority 1: preferred authors with timestamps (no like filter)
-  if (preferred.size > 0) {
+  if (preferredNames.size > 0) {
     const preferredCandidates = withMatches.filter(c =>
-      preferred.has(c.authorDisplayName) && c._tsMatches.length >= minTimestamps
+      isPreferred(c) && c._tsMatches.length >= minTimestamps
     )
     if (preferredCandidates.length > 0) {
       return { ...mergeByTimestamp(preferredCandidates), matchedBy: 'preferred-author' }

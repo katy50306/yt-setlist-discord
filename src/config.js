@@ -67,6 +67,9 @@ export const CONFIG = {
 
   webhookUrls,
   preferredAuthors,
+  // Channel IDs behind preferredAuthors — populated by ensurePreferredAuthorsResolved()
+  // (@handles resolved via API and cached in state; "UC…" entries pass through)
+  preferredAuthorChannelIds: [],
   extraKeywords,
 
   setlistKeywords: [

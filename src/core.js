@@ -7,6 +7,7 @@ import { searchVideos } from './youtube-search.js'
 import { getStreamlistVideoIds } from './streamlist-source.js'
 import { initStateAdapter, loadState, saveState, shouldProcess, markProcessed, pruneState, getChannels } from './state.js'
 import { resolveChannels } from './channel-resolver.js'
+import { ensurePreferredAuthorsResolved } from './preferred-authors.js'
 
 /**
  * Load channels from state and populate CONFIG.channelIds.
@@ -48,6 +49,9 @@ export async function processVideo(videoOrId, options = {}) {
   }
 
   console.log(`Processing: ${video.title || video.id}`)
+
+  // no-op after the first successful resolve in this process
+  await ensurePreferredAuthorsResolved()
 
   const comments = await getVideoComments(video.id)
   console.log(`  Fetched ${comments.length} comments`)
@@ -101,6 +105,8 @@ export async function checkChannels(options = {}) {
   await initStateAdapter()
   const state = await loadState()
   resolveChannelsFromState(state)
+  // share this state so the handle→channelId cache is saved with it below
+  await ensurePreferredAuthorsResolved(state)
   console.log('Checking channels for new videos...')
   const videos = await getRecentVideos(CONFIG.channelIds, CONFIG.youtube.maxVideosPerChannel)
   console.log(`Found ${videos.length} recent videos across all channels`)

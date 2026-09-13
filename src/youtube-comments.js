@@ -20,6 +20,8 @@ export async function getVideoComments(videoId) {
     comments.push({
       text: s.textDisplay,
       authorDisplayName: s.authorDisplayName,
+      // stable across handle renames (authorDisplayName is the current @handle)
+      authorChannelId: s.authorChannelId?.value ?? null,
       likeCount: s.likeCount,
     })
     for (const reply of (item.replies?.comments || [])) {
@@ -27,6 +29,7 @@ export async function getVideoComments(videoId) {
       comments.push({
         text: rs.textDisplay,
         authorDisplayName: rs.authorDisplayName,
+        authorChannelId: rs.authorChannelId?.value ?? null,
         likeCount: rs.likeCount,
       })
     }

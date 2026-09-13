@@ -191,7 +191,7 @@ import { findSetlistComment } from 'yt-setlist-discord/comment-matcher'
 
 | 變數 | 預設值 | Docker | Workers | Lambda | 說明 |
 |------|--------|--------|---------|--------|------|
-| `PREFERRED_AUTHORS` | `[]` | ✓ | ✓ | ✓ | 優先作者的 YouTube 顯示名稱（JSON 陣列），有設時啟用冷卻期邏輯 |
+| `PREFERRED_AUTHORS` | `[]` | ✓ | ✓ | ✓ | 優先作者（JSON 陣列），填 `@handle` 或頻道 ID `UC…`；有設時啟用冷卻期邏輯。`@handle` 會自動解析成頻道 ID 並快取（見優先級 1 說明） |
 | `PREFERRED_AUTHOR_COOLDOWN_HOURS` | `6` | ✓ | ✓ | ✓ | 直播結束後冷卻期（小時），期間只等優先作者 |
 | `EXTRA_KEYWORDS` | `[]` | ✓ | ✓ | ✓ | 附加關鍵字（JSON 陣列，加在預設之後，不覆蓋） |
 | `MIN_LIKES` | `10` | ✓ | ✓ | ✓ | 最低讚數門檻，過濾讚數不足的時間戳留言 |
@@ -258,6 +258,12 @@ AWS_CRON_SCHEDULE = cron(*/10 14-19 * * ? *)  # 台灣 22:00~03:59 每 10 分鐘
 
 留言者在 `PREFERRED_AUTHORS` 裡，且含 ≥3 個時間戳。**不看讚數**。
 多篇按時間戳排序合併。
+
+比對以**頻道 ID** 為準：`@handle` 在每次執行的第一支影片前用 `channels.list?forHandle=`
+解析成 `UC…`（1 quota unit），結果存進 state（`preferredAuthors`），之後直接用快取。
+留言的 `authorDisplayName` 其實就是作者當下的 @handle，作者改名字串就對不上——
+解析成頻道 ID 後改名不影響。解析失敗（handle 已改名且從未快取過）會印警告並退回
+比對顯示名稱字串，此時請把 `PREFERRED_AUTHORS` 改成新 handle 或直接填頻道 ID。
 
 ### 優先級 2：時間戳 + 讚數
 
